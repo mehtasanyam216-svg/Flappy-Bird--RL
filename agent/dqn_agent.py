@@ -14,19 +14,12 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-# ─── Constants ───────────────────────────────────────────────────────
-STATE_SIZE = 4            # [bird_y, velocity, horiz_dist, vert_dist]
-ACTION_SIZE = 2           # 0 = do nothing, 1 = flap
+STATE_SIZE = 4          
+ACTION_SIZE = 2         
 
-# Normalisation ranges (match the game constants)
 SCREEN_HEIGHT = 512
 SCREEN_WIDTH = 400
 MAX_VELOCITY = 10.0
-
-
-# ══════════════════════════════════════════════════════════════════════
-#  Neural Network
-# ══════════════════════════════════════════════════════════════════════
 
 class DQNNetwork(nn.Module):
     """
@@ -49,11 +42,6 @@ class DQNNetwork(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.net(x)
-
-
-# ══════════════════════════════════════════════════════════════════════
-#  Replay Buffer
-# ══════════════════════════════════════════════════════════════════════
 
 class ReplayBuffer:
     """
@@ -81,11 +69,6 @@ class ReplayBuffer:
     def __len__(self):
         return len(self.buffer)
 
-
-# ══════════════════════════════════════════════════════════════════════
-#  DQN Agent
-# ══════════════════════════════════════════════════════════════════════
-
 class DQNAgent:
     """
     DQN agent with:
@@ -109,7 +92,6 @@ class DQNAgent:
         target_update_freq: int = 500,
         device: str | None = None,
     ):
-        # Pick device (GPU if available)
         if device is None:
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         else:
@@ -120,27 +102,22 @@ class DQNAgent:
         self.batch_size = batch_size
         self.target_update_freq = target_update_freq
 
-        # Epsilon-greedy schedule (linear decay)
         self.epsilon = epsilon_start
         self.epsilon_end = epsilon_end
         self.epsilon_step = (epsilon_start - epsilon_end) / epsilon_decay_steps
 
-        # Networks
         self.policy_net = DQNNetwork(state_size, action_size, hidden_size).to(self.device)
         self.target_net = DQNNetwork(state_size, action_size, hidden_size).to(self.device)
         self.target_net.load_state_dict(self.policy_net.state_dict())
-        self.target_net.eval()  # target net is never trained directly
+        self.target_net.eval()
 
         self.optimizer = optim.Adam(self.policy_net.parameters(), lr=lr)
-        self.loss_fn = nn.SmoothL1Loss()  # Huber loss — more stable than MSE
+        self.loss_fn = nn.SmoothL1Loss()
 
-        # Replay memory
         self.memory = ReplayBuffer(capacity=buffer_capacity)
 
-        # Step counter for target-net updates
         self.steps_done = 0
 
-    # ── State normalisation ──────────────────────────────────────────
     @staticmethod
     def normalize_state(state: list[float]) -> list[float]:
         """
@@ -149,13 +126,12 @@ class DQNAgent:
         """
         bird_y, velocity, horiz_dist, vert_dist = state
         return [
-            bird_y / SCREEN_HEIGHT,          # 0 → 1
-            velocity / MAX_VELOCITY,         # ~-0.8 → 1
-            horiz_dist / SCREEN_WIDTH,       # ~0 → 1
-            vert_dist / SCREEN_HEIGHT,       # ~-0.5 → 0.5
+            bird_y / SCREEN_HEIGHT,        
+            velocity / MAX_VELOCITY,       
+            horiz_dist / SCREEN_WIDTH,     
+            vert_dist / SCREEN_HEIGHT,     
         ]
 
-    # ── Action selection ─────────────────────────────────────────────
     def select_action(self, state: list[float], training: bool = True) -> int:
         """
         Epsilon-greedy action selection.
@@ -164,21 +140,18 @@ class DQNAgent:
         if training and random.random() < self.epsilon:
             return random.randint(0, self.action_size - 1)
 
-        # Greedy action from policy network
         norm_state = self.normalize_state(state)
         state_tensor = torch.tensor([norm_state], dtype=torch.float32, device=self.device)
         with torch.no_grad():
             q_values = self.policy_net(state_tensor)
         return q_values.argmax(dim=1).item()
 
-    # ── Store transition ─────────────────────────────────────────────
     def remember(self, state, action, reward, next_state, done):
         """Store a normalised transition in replay memory."""
         norm_state = self.normalize_state(state)
         norm_next = self.normalize_state(next_state)
         self.memory.push(norm_state, action, reward, norm_next, done)
 
-    # ── Training step ────────────────────────────────────────────────
     def train_step(self) -> float | None:
         """
         Sample a mini-batch from replay memory and do one gradient step.
@@ -189,17 +162,14 @@ class DQNAgent:
 
         states, actions, rewards, next_states, dones = self.memory.sample(self.batch_size)
 
-        # Convert to tensors
         states_t = torch.tensor(states, device=self.device)
         actions_t = torch.tensor(actions, device=self.device).unsqueeze(1)
         rewards_t = torch.tensor(rewards, device=self.device).unsqueeze(1)
         next_states_t = torch.tensor(next_states, device=self.device)
         dones_t = torch.tensor(dones, device=self.device).unsqueeze(1)
 
-        # Current Q-values: Q(s, a) from the policy network
         q_values = self.policy_net(states_t).gather(1, actions_t)
 
-        # Target Q-values: r + γ * max_a' Q_target(s', a')   (0 if done)
         with torch.no_grad():
             next_q = self.target_net(next_states_t).max(dim=1, keepdim=True).values
             target = rewards_t + self.gamma * next_q * (1.0 - dones_t)
@@ -208,21 +178,17 @@ class DQNAgent:
 
         self.optimizer.zero_grad()
         loss.backward()
-        # Gradient clipping for stability
         torch.nn.utils.clip_grad_norm_(self.policy_net.parameters(), max_norm=1.0)
         self.optimizer.step()
 
-        # Decay epsilon
         self.epsilon = max(self.epsilon_end, self.epsilon - self.epsilon_step)
 
-        # Periodically sync target network
         self.steps_done += 1
         if self.steps_done % self.target_update_freq == 0:
             self.target_net.load_state_dict(self.policy_net.state_dict())
 
         return loss.item()
 
-    # ── Persistence ──────────────────────────────────────────────────
     def save(self, path: str = "checkpoints/dqn_flappy.pth"):
         """Save the policy network weights and training state."""
         torch.save({
