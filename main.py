@@ -12,9 +12,7 @@ import random
 import pygame
 from game.flappy_env import FlappyEnv
 
-# ─── Toggle ──────────────────────────────────────────────────────────
-HUMAN_MODE = True  # Set to False for agent-driven mode
-
+HUMAN_MODE = True
 
 def run_human(env: FlappyEnv):
     """Manual play loop controlled by the spacebar."""
@@ -37,14 +35,12 @@ def run_human(env: FlappyEnv):
                   f"Score: {env.score}")
 
         if done:
-            # Show final frame for a moment, then reset
             env.render()
             pygame.time.wait(500)
             state = env.reset()
             done = False
 
         env.render()
-
 
 def run_agent(env: FlappyEnv):
     """Placeholder agent loop — takes random actions for demonstration."""
@@ -56,21 +52,19 @@ def run_agent(env: FlappyEnv):
         steps = 0
 
         while not done:
-            # Handle pygame events so the window stays responsive
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     env.close()
                     sys.exit()
 
-            # Random action placeholder — replace with your DQN agent
-            action = random.choice([0, 0, 0, 1])  # bias toward no-flap
+            action = random.choice([0, 0, 0, 1])
             state, reward, done = env.step(action)
             total_reward += reward
             steps += 1
 
             env.render()
 
-            if steps % 30 == 0:  # Print every 30 frames to reduce spam
+            if steps % 30 == 0:
                 print(f"[Ep {ep}] State: {[round(s, 2) for s in state]}  "
                       f"Reward: {reward:+.1f}  Done: {done}")
 
@@ -79,8 +73,6 @@ def run_agent(env: FlappyEnv):
 
     env.close()
 
-
-# ─── Entry point ─────────────────────────────────────────────────────
 if __name__ == "__main__":
     env = FlappyEnv(render_mode=True)
 
