@@ -2,15 +2,13 @@
 bird.py — Bird entity with gravity-based physics and flap mechanic.
 """
 
-# ─── Constants ───────────────────────────────────────────────────────
-GRAVITY = 0.5          # Downward acceleration per frame
-FLAP_STRENGTH = -8.0   # Upward velocity applied on flap
-MAX_FALL_SPEED = 10.0  # Terminal velocity cap
+GRAVITY = 0.5        
+FLAP_STRENGTH = -8.0 
+MAX_FALL_SPEED = 10.0
 BIRD_WIDTH = 34
 BIRD_HEIGHT = 24
-BIRD_START_X = 80      # Fixed horizontal position (bird never moves on x-axis)
-BIRD_START_Y = 256     # Initial vertical spawn (roughly mid-screen for 512-high window)
-
+BIRD_START_X = 80    
+BIRD_START_Y = 256   
 
 class Bird:
     """Represents the player-controlled bird."""
@@ -18,11 +16,10 @@ class Bird:
     def __init__(self):
         self.x = BIRD_START_X
         self.y = BIRD_START_Y
-        self.velocity = 0.0  # Current vertical velocity (positive = falling)
+        self.velocity = 0.0
         self.width = BIRD_WIDTH
         self.height = BIRD_HEIGHT
 
-    # ── Actions ──────────────────────────────────────────────────────
     def flap(self):
         """Apply an upward impulse."""
         self.velocity = FLAP_STRENGTH
@@ -30,12 +27,10 @@ class Bird:
     def update(self):
         """Advance physics by one frame: apply gravity, clamp speed, move."""
         self.velocity += GRAVITY
-        # Cap falling speed so the bird doesn't accelerate indefinitely
         if self.velocity > MAX_FALL_SPEED:
             self.velocity = MAX_FALL_SPEED
         self.y += self.velocity
 
-    # ── Collision helpers ────────────────────────────────────────────
     def get_rect(self):
         """Return (x, y, width, height) bounding box for collision checks."""
         return (self.x, self.y, self.width, self.height)
