@@ -11,22 +11,20 @@ import os
 import time
 import numpy as np
 import matplotlib
-matplotlib.use("Agg")  # Non-interactive backend — no window needed
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 from game.flappy_env import FlappyEnv
 from agent.dqn_agent import DQNAgent
 
-# ─── Training hyperparameters ────────────────────────────────────────
-NUM_EPISODES = 10_000        # Total training episodes
-MAX_STEPS_PER_EP = 100_000  # Increased to prevent early capping of score
-LOG_INTERVAL = 25            # Print summary every N episodes
-SAVE_INTERVAL = 200          # Save checkpoint every N episodes
+NUM_EPISODES = 10_000      
+MAX_STEPS_PER_EP = 100_000
+LOG_INTERVAL = 25          
+SAVE_INTERVAL = 200        
 CHECKPOINT_DIR = "checkpoints"
 PLOT_PATH = "training_curve.png"
-RESUME_FROM = None   # Set to a checkpoint path to resume, e.g. "checkpoints/dqn_final.pth"
+RESUME_FROM = None 
 
-# Agent hyperparameters (passed through to DQNAgent)
 AGENT_CONFIG = dict(
     lr=5e-4,
     gamma=0.99,
@@ -39,14 +37,12 @@ AGENT_CONFIG = dict(
     hidden_size=128,
 )
 
-
 def train():
     os.makedirs(CHECKPOINT_DIR, exist_ok=True)
 
-    env = FlappyEnv(render_mode=False)   # Headless — no pygame display
+    env = FlappyEnv(render_mode=False) 
     agent = DQNAgent(**AGENT_CONFIG)
 
-    # ── Resume from checkpoint ───────────────────────────────────────
     if RESUME_FROM and os.path.exists(RESUME_FROM):
         agent.load(RESUME_FROM)
         print(f"▶ Resuming training from {RESUME_FROM}")
@@ -56,7 +52,6 @@ def train():
     print(f"   Episodes: {NUM_EPISODES}  |  Epsilon decay over {AGENT_CONFIG['epsilon_decay_steps']} steps")
     print("=" * 65)
 
-    # ── Tracking ─────────────────────────────────────────────────────
     all_scores: list[int] = []
     all_rewards: list[float] = []
     best_score = 0
@@ -85,12 +80,10 @@ def train():
         all_scores.append(score)
         all_rewards.append(total_reward)
 
-        # Track best
         if score > best_score:
             best_score = score
             agent.save(os.path.join(CHECKPOINT_DIR, "dqn_best.pth"))
 
-        # ── Periodic logging ─────────────────────────────────────────
         if episode % LOG_INTERVAL == 0:
             recent = all_scores[-LOG_INTERVAL:]
             avg = np.mean(recent)
@@ -106,11 +99,9 @@ def train():
                 f"Time {elapsed:>6.0f}s"
             )
 
-        # ── Periodic checkpoint ──────────────────────────────────────
         if episode % SAVE_INTERVAL == 0:
             agent.save(os.path.join(CHECKPOINT_DIR, f"dqn_ep{episode}.pth"))
 
-    # ── Final save and plot ──────────────────────────────────────────
     agent.save(os.path.join(CHECKPOINT_DIR, "dqn_final.pth"))
     env.close()
 
@@ -120,7 +111,6 @@ def train():
     print(f"   Final checkpoint : {CHECKPOINT_DIR}/dqn_final.pth")
     print(f"   Best  checkpoint : {CHECKPOINT_DIR}/dqn_best.pth")
     print(f"   Score curve      : {PLOT_PATH}")
-
 
 def _plot_training_curve(scores: list[int], window: int = 50):
     """Save a smoothed training-score plot to disk."""
@@ -153,7 +143,6 @@ def _plot_training_curve(scores: list[int], window: int = 50):
     plt.savefig(PLOT_PATH, dpi=150)
     plt.close()
     print(f"📊 Training curve saved to {PLOT_PATH}")
-
 
 if __name__ == "__main__":
     train()
