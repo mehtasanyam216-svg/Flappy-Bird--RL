@@ -54,6 +54,7 @@ def train():
 
     all_scores: list[int] = []
     all_rewards: list[float] = []
+    all_losses: list[float] = []
     best_score = 0
     start_time = time.time()
 
@@ -67,7 +68,9 @@ def train():
             next_state, reward, done = env.step(action)
 
             agent.remember(state, action, reward, next_state, done)
-            agent.train_step()
+            loss = agent.train_step()
+            if loss is not None:
+             all_losses.append(loss)
 
             state = next_state
             total_reward += reward
