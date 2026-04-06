@@ -169,10 +169,11 @@ class DQNAgent:
         dones_t = torch.tensor(dones, device=self.device).unsqueeze(1)
 
         q_values = self.policy_net(states_t).gather(1, actions_t)
-
-        with torch.no_grad():
-            next_q = self.target_net(next_states_t).max(dim=1, keepdim=True).values
-            target = rewards_t + self.gamma * next_q * (1.0 - dones_t)
+with torch.no_grad():
+    # Double DQN
+    next_actions = self.policy_net(next_states_t).argmax(dim=1, keepdim=True)
+    next_q = self.target_net(next_states_t).gather(1, next_actions)
+    target = rewards_t + self.gamma * next_q * (1.0 - dones_t)
 
         loss = self.loss_fn(q_values, target)
 
