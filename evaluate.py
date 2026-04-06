@@ -42,6 +42,35 @@ def evaluate(checkpoint_path: str):
     env.close()
     print("\n✅ Evaluation complete.")
 
+import random
+
+def random_agent_test(env, episodes=5):
+    print("\n▶ Running random agent for comparison...\n")
+
+    scores = []
+
+    for ep in range(1, episodes + 1):
+        state = env.reset()
+        done = False
+
+        while not done:
+            action = random.choice([0, 1])
+            state, _, done = env.step(action)
+
+        scores.append(env.score)
+        print(f"[Random] Episode {ep}: Score = {env.score}")
+
+    avg = sum(scores) / len(scores)
+    print(f"\n🎯 Random Agent Average Score: {avg:.2f}\n")
+
 if __name__ == "__main__":
     path = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_CHECKPOINT
+    env = FlappyEnv(render_mode=False)
+
+# Random baseline
+    random_agent_test(env)
+
+    env.close()
+
+# Trained agent
     evaluate(path)
