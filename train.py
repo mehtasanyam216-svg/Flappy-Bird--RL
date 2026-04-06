@@ -109,6 +109,7 @@ def train():
     env.close()
 
     _plot_training_curve(all_scores)
+    _plot_loss_curve(all_losses)
     print("=" * 65)
     print(f"✅ Training complete!  Best score: {best_score}")
     print(f"   Final checkpoint : {CHECKPOINT_DIR}/dqn_final.pth")
@@ -146,6 +147,18 @@ def _plot_training_curve(scores: list[int], window: int = 50):
     plt.savefig(PLOT_PATH, dpi=150)
     plt.close()
     print(f"📊 Training curve saved to {PLOT_PATH}")
+def _plot_loss_curve(losses):
+    import matplotlib.pyplot as plt
+
+    plt.figure(figsize=(8, 4))
+    plt.plot(losses, alpha=0.7)
+    plt.title("Training Loss")
+    plt.xlabel("Steps")
+    plt.ylabel("Loss")
+    plt.grid()
+    plt.savefig("loss_curve.png")
+    plt.close()
+    print("📉 Loss curve saved to loss_curve.png")
 
 if __name__ == "__main__":
     train()
