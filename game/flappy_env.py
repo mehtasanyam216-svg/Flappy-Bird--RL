@@ -91,17 +91,26 @@ class FlappyEnv:
 
         self.pipes = [p for p in self.pipes if not p.is_offscreen()]
 
-        reward = REWARD_ALIVE
+       reward = 0.1  
+
+next_pipe = self._get_next_pipe()
+if next_pipe:
+    vertical_error = abs(next_pipe.gap_center_y - self.bird.y)
+    reward -= vertical_error * 0.01  
+
+
+if action == 1:
+    reward -= 0.05
         for pipe in self.pipes:
             if (not pipe.passed
                     and pipe.x + pipe.width < self.bird.x):
                 pipe.passed = True
                 self.score += 1
-                reward = REWARD_PASS_PIPE
+                reward += 10
 
         done = self._check_collision()
         if done:
-            reward = REWARD_DEATH
+           reward = -100
 
         state = self._get_state()
         return state, reward, done
